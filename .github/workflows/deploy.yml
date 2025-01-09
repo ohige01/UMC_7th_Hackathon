@@ -1,0 +1,40 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: copy git repository
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            cd /home/ubuntu/UMC_7th_Hackathon
+            git pull origin main
+            cd spring/src/resources
+            echo "${{ secrets.APPLICATION_YML }}" > ./application.yml
+
+      - name: build & run the code
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            cd /home/ubuntu/UMC_7th_Hackathon/spring
+            ./gradlew build
+            cd build/libs/
+            nohup java -jar spring-0.0.1-SNAPSHOT.jar &
+            cat nohup.out
